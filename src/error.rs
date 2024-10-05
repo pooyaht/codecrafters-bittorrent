@@ -9,7 +9,7 @@ pub(crate) enum Error {
     InvalidUTF8,
     MissingTerminator,
     UnexpectedEOF,
-    FileNotFound(std::io::Error),
+    Io(std::io::Error),
 }
 
 impl std::fmt::Display for Error {
@@ -28,7 +28,7 @@ impl std::fmt::Display for Error {
             Error::InvalidUTF8 => write!(f, "Invalid UTF-8"),
             Error::MissingTerminator => write!(f, "Missing terminator"),
             Error::UnexpectedEOF => write!(f, "Unexpected EOF"),
-            Error::FileNotFound(e) => write!(f, "File not found: {}", e),
+            Error::Io(e) => write!(f, "File not found: {}", e),
         }
     }
 }
@@ -36,7 +36,7 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Error::FileNotFound(e) => Some(e),
+            Error::Io(e) => Some(e),
             _ => None,
         }
     }
@@ -44,6 +44,6 @@ impl std::error::Error for Error {
 
 impl From<std::io::Error> for Error {
     fn from(value: std::io::Error) -> Self {
-        Error::FileNotFound(value)
+        Error::Io(value)
     }
 }
