@@ -15,7 +15,7 @@ fn main() {
     let command = &args[1];
 
     if command == "decode" {
-        let mut bencode_decoder = decoder::BenCodeDecoder::new(args[2].as_bytes());
+        let mut bencode_decoder = decoder::Decoder::new(args[2].as_bytes());
 
         let decoded_value = bencode_decoder.decode();
         if decoded_value.is_err() {
@@ -29,7 +29,7 @@ fn main() {
             .read_to_end(&mut buffer)
             .unwrap();
 
-        let mut bencode_decoder = decoder::BenCodeDecoder::new(&buffer);
+        let mut bencode_decoder = decoder::Decoder::new(&buffer);
         let decoded_value = bencode_decoder.decode();
         if decoded_value.is_err() {
             panic!("{}", decoded_value.err().unwrap());

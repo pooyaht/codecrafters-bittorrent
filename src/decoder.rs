@@ -2,12 +2,12 @@ use serde_json::json;
 
 use crate::Error;
 
-pub(crate) struct BenCodeDecoder<'a> {
+pub(crate) struct Decoder<'a> {
     input: &'a [u8],
     index: usize,
 }
 
-impl<'a> BenCodeDecoder<'a> {
+impl<'a> Decoder<'a> {
     pub(crate) fn new(input: &'a [u8]) -> Self {
         Self { input, index: 0 }
     }
@@ -139,7 +139,7 @@ mod tests {
     #[test]
     fn test_bencode_dict_decoder() {
         let input = b"d3:foo3:bar5:helloi52ee";
-        let mut bencode_decoder = BenCodeDecoder::new(input);
+        let mut bencode_decoder = Decoder::new(input);
         let decoded_value = bencode_decoder.decode();
         assert!(decoded_value.is_ok());
         assert_eq!(
@@ -154,7 +154,7 @@ mod tests {
     #[test]
     fn test_bencode_list_decoder() {
         let input = b"l3:foo3:bari52ee";
-        let mut bencode_decoder = BenCodeDecoder::new(input);
+        let mut bencode_decoder = Decoder::new(input);
         let decoded_value = bencode_decoder.decode();
         assert!(decoded_value.is_ok());
         assert_eq!(
@@ -166,7 +166,7 @@ mod tests {
     #[test]
     fn test_bencode_integer_decoder() {
         let input = b"i-52e";
-        let mut bencode_decoder = BenCodeDecoder::new(input);
+        let mut bencode_decoder = Decoder::new(input);
         let decoded_value = bencode_decoder.decode();
         assert!(decoded_value.is_ok());
         assert_eq!(decoded_value.unwrap(), serde_json::json!(-52));
@@ -175,7 +175,7 @@ mod tests {
     #[test]
     fn test_bencode_string_decoder() {
         let input = b"5:hello";
-        let mut bencode_decoder = BenCodeDecoder::new(input);
+        let mut bencode_decoder = Decoder::new(input);
         let decoded_value = bencode_decoder.decode();
         assert!(decoded_value.is_ok());
         assert_eq!(decoded_value.unwrap(), serde_json::json!("hello"));
@@ -184,7 +184,7 @@ mod tests {
     #[test]
     fn test_invalid_bencode() {
         let input = b"x:invalid";
-        let mut bencode_decoder = BenCodeDecoder::new(input);
+        let mut bencode_decoder = Decoder::new(input);
         let decoded_value = bencode_decoder.decode();
         assert!(decoded_value.is_err());
         assert!(matches!(
