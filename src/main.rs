@@ -4,8 +4,7 @@ mod decoder;
 mod encoder;
 mod error;
 
-use encoder::encode;
-
+use encoder::Encoder;
 pub(crate) use error::*;
 use sha1::Digest;
 
@@ -55,7 +54,7 @@ fn info_command(decoded_value: serde_json::Value) {
         println!("Length not found or not an integer");
     }
 
-    let bencoded_info = encode(&decoded_value["info"]).unwrap_or_default();
+    let bencoded_info = Encoder::encode(&decoded_value["info"]).unwrap_or_default();
     println!(
         "Info Hash: {}",
         format_args!("{:x}", sha1::Sha1::digest(bencoded_info))
