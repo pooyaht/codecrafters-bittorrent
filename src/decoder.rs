@@ -17,7 +17,8 @@ impl<'a> BenCodeDecoder<'a> {
             Some('i') => self.parse_bencode_integer(),
             Some('l') => self.parse_bencode_list(),
             Some('d') => self.parse_bencode_dict(),
-            _ => todo!(),
+            Some(val) => Err(Error::InvalidBencodeType(val)),
+            None => Err(Error::IsEmpty),
         }
     }
 

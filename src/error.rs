@@ -4,6 +4,8 @@ pub(crate) enum Error {
     BencodeStringLengthMismatch,
     NotNumber(String),
     InvalidDictKey(String),
+    InvalidBencodeType(char),
+    IsEmpty,
 }
 
 impl std::fmt::Display for Error {
@@ -15,6 +17,10 @@ impl std::fmt::Display for Error {
             }
             Error::NotNumber(number) => write!(f, "Not a number: {}", number),
             Error::InvalidDictKey(key) => write!(f, "Invalid dict key: {}", key),
+            Error::InvalidBencodeType(bencode_type) => {
+                write!(f, "Invalid bencode type: {}", bencode_type)
+            }
+            Error::IsEmpty => write!(f, "Input is empty"),
         }
     }
 }
