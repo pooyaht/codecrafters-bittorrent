@@ -22,16 +22,14 @@ impl<'a> BenCodeDecoder<'a> {
 
     fn parse_bencode_string(&mut self) -> Result<serde_json::Value, crate::Error> {
         let encoded_value = &self.input[self.index..];
-        let colon_index = encoded_value
-            .find(':')
-            .ok_or(Error::BencodeStringParseError)?;
+        let colon_index = encoded_value.find(':').ok_or(Error::BencodeStringNoColon)?;
         let number_string = &encoded_value[..colon_index];
         let number = number_string
             .parse::<i64>()
-            .map_err(|_| Error::NotNumberError(number_string.to_string()))?;
+            .map_err(|_| Error::NotNumber(number_string.to_string()))?;
 
         if colon_index + number as usize >= encoded_value.len() {
-            return Err(Error::BencodeStringParseError);
+            return Err(Error::BencodeStringLengthMismatch);
         }
 
         let string = &encoded_value[colon_index + 1..colon_index + 1 + number as usize];
@@ -44,7 +42,7 @@ impl<'a> BenCodeDecoder<'a> {
         let encoded_value = &self.input[self.index..].split('e').next().unwrap()[1..];
         let number = encoded_value
             .parse::<i64>()
-            .map_err(|_| Error::NotNumberError(encoded_value.to_string()))?;
+            .map_err(|_| Error::NotNumber(encoded_value.to_string()))?;
 
         // Skip the 'i' and the 'e'
         self.index += encoded_value.len() + 1 + 1;
