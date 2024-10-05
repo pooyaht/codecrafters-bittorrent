@@ -66,7 +66,7 @@ impl<'a> BenCodeDecoder<'a> {
         let mut list = Vec::new();
 
         let mut encoded_value = &self.input[self.index..];
-        while encoded_value != "e" {
+        while !encoded_value.starts_with('e') {
             list.push(self.decode()?);
             encoded_value = &self.input[self.index..];
         }
