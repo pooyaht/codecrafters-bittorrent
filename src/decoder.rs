@@ -15,6 +15,7 @@ impl<'a> BenCodeDecoder<'a> {
         match encoded_value.chars().next() {
             Some(digit) if digit.is_ascii_digit() => self.parse_bencode_string(),
             Some('i') => self.parse_bencode_integer(),
+            Some('l') => self.parse_bencode_list(),
             _ => todo!(),
         }
     }
@@ -49,5 +50,27 @@ impl<'a> BenCodeDecoder<'a> {
         self.index += encoded_value.len() + 1 + 1;
 
         Ok(serde_json::Value::Number(number.into()))
+    }
+
+    fn parse_bencode_list(&mut self) -> Result<serde_json::Value, Error> {
+        // Skip the 'l'
+        self.index += 1;
+        let array = self.parse_bencode_list_inner()?;
+        // Skip the 'e'
+        self.index += 1;
+
+        Ok(serde_json::Value::Array(array))
+    }
+
+    fn parse_bencode_list_inner(&mut self) -> Result<Vec<serde_json::Value>, Error> {
+        let mut list = Vec::new();
+
+        let mut encoded_value = &self.input[self.index..];
+        while encoded_value != "e" {
+            list.push(self.decode()?);
+            encoded_value = &self.input[self.index..];
+        }
+
+        Ok(list)
     }
 }
