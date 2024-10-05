@@ -1,31 +1,38 @@
+use serde_json::json;
+
 use crate::Error;
 
 pub(crate) struct BenCodeDecoder<'a> {
-    input: &'a str,
+    input: &'a [u8],
     index: usize,
 }
 
 impl<'a> BenCodeDecoder<'a> {
-    pub(crate) fn new(input: &'a str) -> Self {
+    pub(crate) fn new(input: &'a [u8]) -> Self {
         Self { input, index: 0 }
     }
 
     pub(crate) fn decode(&mut self) -> Result<serde_json::Value, Error> {
         let encoded_value = &self.input[self.index..];
-        match encoded_value.chars().next() {
+        match encoded_value.first() {
             Some(digit) if digit.is_ascii_digit() => self.parse_bencode_string(),
-            Some('i') => self.parse_bencode_integer(),
-            Some('l') => self.parse_bencode_list(),
-            Some('d') => self.parse_bencode_dict(),
-            Some(val) => Err(Error::InvalidBencodeType(val)),
+            Some(b'i') => self.parse_bencode_integer(),
+            Some(b'l') => self.parse_bencode_list(),
+            Some(b'd') => self.parse_bencode_dict(),
+            Some(val) => Err(Error::InvalidBencodeType(*val)),
             None => Err(Error::IsEmpty),
         }
     }
 
     fn parse_bencode_string(&mut self) -> Result<serde_json::Value, crate::Error> {
         let encoded_value = &self.input[self.index..];
-        let colon_index = encoded_value.find(':').ok_or(Error::BencodeStringNoColon)?;
-        let number_string = &encoded_value[..colon_index];
+
+        let colon_index = encoded_value
+            .iter()
+            .position(|&x| x == b':')
+            .ok_or(Error::BencodeStringNoColon)?;
+        let number_string =
+            std::str::from_utf8(&encoded_value[..colon_index]).map_err(|_| Error::InvalidUTF8)?;
         let number = number_string
             .parse::<i64>()
             .map_err(|_| Error::NotNumber(number_string.to_string()))?;
@@ -34,20 +41,30 @@ impl<'a> BenCodeDecoder<'a> {
             return Err(Error::BencodeStringLengthMismatch);
         }
 
-        let string = &encoded_value[colon_index + 1..colon_index + 1 + number as usize];
+        let bytes = &encoded_value[colon_index + 1..colon_index + 1 + number as usize];
         self.index += number as usize + 1 + colon_index;
 
-        Ok(serde_json::Value::String(string.to_string()))
+        //TODO handle non-UTF8 strings better
+        match std::str::from_utf8(bytes) {
+            Ok(s) => Ok(serde_json::Value::String(s.to_string())),
+            _ => Ok(json!(bytes.to_vec())),
+        }
     }
 
     fn parse_bencode_integer(&mut self) -> Result<serde_json::Value, Error> {
-        let encoded_value = &self.input[self.index..].split('e').next().unwrap()[1..];
-        let number = encoded_value
-            .parse::<i64>()
-            .map_err(|_| Error::NotNumber(encoded_value.to_string()))?;
+        let encoded_value = &self.input[self.index + 1..];
 
-        // Skip the 'i' and the 'e'
-        self.index += encoded_value.len() + 1 + 1;
+        let end_index = encoded_value
+            .iter()
+            .position(|&x| x == b'e')
+            .ok_or(Error::MissingTerminator)?;
+        let number_str =
+            std::str::from_utf8(&encoded_value[..end_index]).map_err(|_| Error::InvalidUTF8)?;
+        let number = number_str
+            .parse::<i64>()
+            .map_err(|_| Error::NotNumber(number_str.to_string()))?;
+
+        self.index += end_index + 2; // Skip 'i', number, and 'e'
 
         Ok(serde_json::Value::Number(number.into()))
     }
@@ -66,9 +83,14 @@ impl<'a> BenCodeDecoder<'a> {
         let mut list = Vec::new();
 
         let mut encoded_value = &self.input[self.index..];
-        while !encoded_value.starts_with('e') {
+
+        while self.index < self.input.len() && encoded_value[0] != b'e' {
             list.push(self.decode()?);
             encoded_value = &self.input[self.index..];
+        }
+
+        if self.index >= self.input.len() {
+            return Err(Error::UnexpectedEOF);
         }
 
         Ok(list)
@@ -90,11 +112,19 @@ impl<'a> BenCodeDecoder<'a> {
         let mut dict = serde_json::Map::new();
 
         let mut encoded_value = &self.input[self.index..];
-        while !encoded_value.starts_with('e') {
+        while self.index < self.input.len() && encoded_value[0] != b'e' {
             let key = self.decode()?;
             let value = self.decode()?;
-            let key = key.as_str().ok_or(Error::InvalidDictKey(key.to_string()))?;
-            dict.insert(key.to_string(), value);
+            let key = match key {
+                serde_json::Value::String(s) => s,
+                _ => return Err(Error::InvalidDictKey(format!("{:?}", key))),
+            };
+
+            if self.index >= self.input.len() {
+                return Err(Error::UnexpectedEOF);
+            }
+
+            dict.insert(key, value);
             encoded_value = &self.input[self.index..];
         }
 
@@ -108,18 +138,58 @@ mod tests {
 
     #[test]
     fn test_bencode_dict_decoder() {
-        let mut bencode_decoder = BenCodeDecoder::new("d3:foo3:bar5:helloi52ee");
+        let input = b"d3:foo3:bar5:helloi52ee";
+        let mut bencode_decoder = BenCodeDecoder::new(input);
         let decoded_value = bencode_decoder.decode();
         assert!(decoded_value.is_ok());
         assert_eq!(
             decoded_value.unwrap(),
-            serde_json::Value::Object(serde_json::Map::from_iter(vec![
-                (
-                    "foo".to_string(),
-                    serde_json::Value::String("bar".to_string())
-                ),
-                ("hello".to_string(), serde_json::Value::Number(52.into()))
-            ]))
+            serde_json::json!({
+                "foo": "bar",
+                "hello": 52
+            })
         );
+    }
+
+    #[test]
+    fn test_bencode_list_decoder() {
+        let input = b"l3:foo3:bari52ee";
+        let mut bencode_decoder = BenCodeDecoder::new(input);
+        let decoded_value = bencode_decoder.decode();
+        assert!(decoded_value.is_ok());
+        assert_eq!(
+            decoded_value.unwrap(),
+            serde_json::json!(["foo", "bar", 52])
+        );
+    }
+
+    #[test]
+    fn test_bencode_integer_decoder() {
+        let input = b"i-52e";
+        let mut bencode_decoder = BenCodeDecoder::new(input);
+        let decoded_value = bencode_decoder.decode();
+        assert!(decoded_value.is_ok());
+        assert_eq!(decoded_value.unwrap(), serde_json::json!(-52));
+    }
+
+    #[test]
+    fn test_bencode_string_decoder() {
+        let input = b"5:hello";
+        let mut bencode_decoder = BenCodeDecoder::new(input);
+        let decoded_value = bencode_decoder.decode();
+        assert!(decoded_value.is_ok());
+        assert_eq!(decoded_value.unwrap(), serde_json::json!("hello"));
+    }
+
+    #[test]
+    fn test_invalid_bencode() {
+        let input = b"x:invalid";
+        let mut bencode_decoder = BenCodeDecoder::new(input);
+        let decoded_value = bencode_decoder.decode();
+        assert!(decoded_value.is_err());
+        assert!(matches!(
+            decoded_value.unwrap_err(),
+            Error::InvalidBencodeType(b'x')
+        ));
     }
 }

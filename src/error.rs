@@ -4,8 +4,11 @@ pub(crate) enum Error {
     BencodeStringLengthMismatch,
     NotNumber(String),
     InvalidDictKey(String),
-    InvalidBencodeType(char),
+    InvalidBencodeType(u8),
     IsEmpty,
+    InvalidUTF8,
+    MissingTerminator,
+    UnexpectedEOF,
 }
 
 impl std::fmt::Display for Error {
@@ -21,6 +24,9 @@ impl std::fmt::Display for Error {
                 write!(f, "Invalid bencode type: {}", bencode_type)
             }
             Error::IsEmpty => write!(f, "Input is empty"),
+            Error::InvalidUTF8 => write!(f, "Invalid UTF-8"),
+            Error::MissingTerminator => write!(f, "Missing terminator"),
+            Error::UnexpectedEOF => write!(f, "Unexpected EOF"),
         }
     }
 }
