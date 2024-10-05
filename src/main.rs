@@ -11,7 +11,7 @@ fn main() {
     let command = &args[1];
 
     if command == "decode" {
-        let bencode_decoder = decoder::BenCodeDecoder::new(&args[2]);
+        let mut bencode_decoder = decoder::BenCodeDecoder::new(&args[2]);
 
         let decoded_value = bencode_decoder.decode();
         if decoded_value.is_err() {
