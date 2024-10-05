@@ -59,4 +59,9 @@ fn info_command(decoded_value: serde_json::Value) {
         "Info Hash: {}",
         format_args!("{:x}", sha1::Sha1::digest(bencoded_info))
     );
+    println!("Piece Length: {}", &decoded_value["info"]["piece length"]);
+    println!("Piece Hashes:");
+    for str_ in Encoder::calculate_pieces_hashes(&decoded_value["info"]["pieces"]).unwrap() {
+        println!("{}", str_);
+    }
 }

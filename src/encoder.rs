@@ -7,6 +7,22 @@ use crate::Error;
 pub(crate) struct Encoder;
 
 impl Encoder {
+    pub(crate) fn calculate_pieces_hashes(value: &Value) -> Result<Vec<String>, Error> {
+        if let Value::Array(arr) = value {
+            Ok(arr
+                .chunks(20)
+                .map(|chunk| {
+                    chunk
+                        .iter()
+                        .filter_map(|v| v.as_u64().map(|n| format!("{:02x}", n as u8)))
+                        .collect::<String>()
+                })
+                .collect())
+        } else {
+            Ok(Vec::new())
+        }
+    }
+
     pub(crate) fn encode(value: &Value) -> Result<Vec<u8>, Error> {
         let mut output = Vec::new();
         Self::encode_value(value, &mut output)?;
