@@ -1,21 +1,9 @@
 use std::env;
 
+mod error;
+
 use anyhow::Result;
-
-#[derive(Debug)]
-enum Error {
-    BencodeStringParseError,
-    NotNumberError(String),
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Error::BencodeStringParseError => write!(f, "bencode string parse error"),
-            Error::NotNumberError(number) => write!(f, "not a number: {}", number),
-        }
-    }
-}
+pub(crate) use error::*;
 
 #[allow(dead_code)]
 fn decode_bencoded_value(encoded_value: &str) -> Result<serde_json::Value, Error> {
