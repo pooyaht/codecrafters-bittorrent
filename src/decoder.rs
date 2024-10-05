@@ -28,8 +28,12 @@ impl<'a> BenCodeDecoder<'a> {
         let number = number_string
             .parse::<i64>()
             .map_err(|_| Error::NotNumberError(number_string.to_string()))?;
-        let string = &encoded_value[colon_index + 1..colon_index + 1 + number as usize];
 
+        if colon_index + number as usize >= encoded_value.len() {
+            return Err(Error::BencodeStringParseError);
+        }
+
+        let string = &encoded_value[colon_index + 1..colon_index + 1 + number as usize];
         self.index += number as usize + 1 + colon_index;
 
         Ok(serde_json::Value::String(string.to_string()))
