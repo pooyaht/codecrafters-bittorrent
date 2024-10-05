@@ -72,3 +72,25 @@ impl<'a> BenCodeDecoder<'a> {
         Ok(list)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_bencode_dict_decoder() {
+        let mut bencode_decoder = BenCodeDecoder::new("d3:foo3:bar5:helloi52ee");
+        let decoded_value = bencode_decoder.decode();
+        assert!(decoded_value.is_ok());
+        assert_eq!(
+            decoded_value.unwrap(),
+            serde_json::Value::Object(serde_json::Map::from_iter(vec![
+                (
+                    "foo".to_string(),
+                    serde_json::Value::String("bar".to_string())
+                ),
+                ("hello".to_string(), serde_json::Value::Number(52.into()))
+            ]))
+        );
+    }
+}
