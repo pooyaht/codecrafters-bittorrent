@@ -16,6 +16,7 @@ impl<'a> BenCodeDecoder<'a> {
             Some(digit) if digit.is_ascii_digit() => self.parse_bencode_string(),
             Some('i') => self.parse_bencode_integer(),
             Some('l') => self.parse_bencode_list(),
+            Some('d') => self.parse_bencode_dict(),
             _ => todo!(),
         }
     }
@@ -70,6 +71,33 @@ impl<'a> BenCodeDecoder<'a> {
         }
 
         Ok(list)
+    }
+
+    fn parse_bencode_dict(&mut self) -> Result<serde_json::Value, Error> {
+        // Skip the 'd'
+        self.index += 1;
+        let dict = self.parse_bencode_dict_inner()?;
+        // Skip the 'e'
+        self.index += 1;
+
+        Ok(serde_json::Value::Object(dict))
+    }
+
+    fn parse_bencode_dict_inner(
+        &mut self,
+    ) -> Result<serde_json::Map<String, serde_json::Value>, Error> {
+        let mut dict = serde_json::Map::new();
+
+        let mut encoded_value = &self.input[self.index..];
+        while !encoded_value.starts_with('e') {
+            let key = self.decode()?;
+            let value = self.decode()?;
+            let key = key.as_str().ok_or(Error::InvalidDictKey(key.to_string()))?;
+            dict.insert(key.to_string(), value);
+            encoded_value = &self.input[self.index..];
+        }
+
+        Ok(dict)
     }
 }
 

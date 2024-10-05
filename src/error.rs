@@ -3,6 +3,7 @@ pub(crate) enum Error {
     BencodeStringNoColon,
     BencodeStringLengthMismatch,
     NotNumber(String),
+    InvalidDictKey(String),
 }
 
 impl std::fmt::Display for Error {
@@ -13,6 +14,7 @@ impl std::fmt::Display for Error {
                 write!(f, "bencode string length mismatch")
             }
             Error::NotNumber(number) => write!(f, "Not a number: {}", number),
+            Error::InvalidDictKey(key) => write!(f, "Invalid dict key: {}", key),
         }
     }
 }
