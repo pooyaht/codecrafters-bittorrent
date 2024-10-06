@@ -1,8 +1,8 @@
 use std::net::SocketAddrV4;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
-use crate::decoder;
+use crate::{decoder, peer::Peer};
 
 #[derive(Serialize)]
 pub(crate) struct Tracker {
@@ -70,6 +70,3 @@ impl Tracker {
             .ok_or(crate::Error::NoPeers)
     }
 }
-
-#[derive(Debug, Deserialize)]
-pub(crate) struct Peer(pub SocketAddrV4);

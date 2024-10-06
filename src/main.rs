@@ -4,6 +4,7 @@ use std::{fs, io::Read};
 mod decoder;
 mod encoder;
 mod error;
+mod peer;
 mod torrent;
 mod tracker;
 
