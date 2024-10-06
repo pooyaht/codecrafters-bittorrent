@@ -10,6 +10,8 @@ pub(crate) enum Error {
     MissingTerminator,
     UnexpectedEOF,
     Io(std::io::Error),
+    Network(reqwest::Error),
+    NoPeers,
     MissingField(String),
 }
 
@@ -31,6 +33,8 @@ impl std::fmt::Display for Error {
             Error::UnexpectedEOF => write!(f, "Unexpected EOF"),
             Error::Io(e) => write!(f, "File not found: {}", e),
             Error::MissingField(field) => write!(f, "Missing field: {}", field),
+            Error::Network(e) => write!(f, "Network error: {}", e),
+            Error::NoPeers => write!(f, "Couldn't find any peers"),
         }
     }
 }
@@ -39,6 +43,7 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Error::Io(e) => Some(e),
+            Error::Network(e) => Some(e),
             _ => None,
         }
     }
@@ -47,5 +52,11 @@ impl std::error::Error for Error {
 impl From<std::io::Error> for Error {
     fn from(value: std::io::Error) -> Self {
         Error::Io(value)
+    }
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(value: reqwest::Error) -> Self {
+        Error::Network(value)
     }
 }
