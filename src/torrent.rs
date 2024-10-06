@@ -55,7 +55,7 @@ impl Torrent {
         })
     }
 
-    pub fn info_hash(&self) -> Result<String, crate::Error> {
+    pub fn info_hash(&self) -> Result<[u8; 20], crate::Error> {
         let encoded_info =
             crate::encoder::Encoder::encode(&Value::Object(serde_json::Map::from_iter(vec![
                 ("length".to_string(), Value::Number(self.info.length.into())),
@@ -76,7 +76,7 @@ impl Torrent {
                 ),
             ])))?;
 
-        Ok(format!("{:x}", sha1::Sha1::digest(encoded_info)))
+        Ok(sha1::Sha1::digest(&encoded_info).into())
     }
 
     pub fn piece_hashes(&self) -> Vec<String> {
