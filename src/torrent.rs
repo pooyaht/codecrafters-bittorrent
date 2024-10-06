@@ -55,6 +55,15 @@ impl Torrent {
         })
     }
 
+    pub fn info_hash_hex_string(&self) -> Result<String, crate::Error> {
+        Ok(self
+            .info_hash()?
+            .iter()
+            .map(|b| format!("{:02x}", b))
+            .collect::<Vec<String>>()
+            .join(""))
+    }
+
     pub fn info_hash(&self) -> Result<[u8; 20], crate::Error> {
         let encoded_info =
             crate::encoder::Encoder::encode(&Value::Object(serde_json::Map::from_iter(vec![

@@ -46,13 +46,8 @@ fn info_command(decoded_value: serde_json::Value) {
     println!(
         "Info Hash: {}",
         torrent
-            .info_hash()
-            .unwrap()
-            .iter()
-            .fold(String::with_capacity(40), |mut acc, n| {
-                acc.push_str(&format!("{:02x}", n));
-                acc
-            })
+            .info_hash_hex_string()
+            .expect("Failed to convert info hash to hex string")
     );
     println!("Piece Length: {}", torrent.info.piece_length);
     println!("Piece Hashes:");
