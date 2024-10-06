@@ -10,6 +10,7 @@ pub(crate) enum Error {
     MissingTerminator,
     UnexpectedEOF,
     Io(std::io::Error),
+    MissingField(String),
 }
 
 impl std::fmt::Display for Error {
@@ -29,6 +30,7 @@ impl std::fmt::Display for Error {
             Error::MissingTerminator => write!(f, "Missing terminator"),
             Error::UnexpectedEOF => write!(f, "Unexpected EOF"),
             Error::Io(e) => write!(f, "File not found: {}", e),
+            Error::MissingField(field) => write!(f, "Missing field: {}", field),
         }
     }
 }

@@ -3,10 +3,10 @@ use std::{env, io::Read};
 mod decoder;
 mod encoder;
 mod error;
+mod torrent;
 
-use encoder::Encoder;
 pub(crate) use error::*;
-use sha1::Digest;
+use torrent::Torrent;
 
 // Usage: your_bittorrent.sh decode "<encoded_value>"
 fn main() {
@@ -15,7 +15,6 @@ fn main() {
 
     if command == "decode" {
         let mut bencode_decoder = decoder::Decoder::new(args[2].as_bytes());
-
         let decoded_value = bencode_decoder.decode();
         if decoded_value.is_err() {
             panic!("{}", decoded_value.err().unwrap());
@@ -27,13 +26,11 @@ fn main() {
             .unwrap()
             .read_to_end(&mut buffer)
             .unwrap();
-
         let mut bencode_decoder = decoder::Decoder::new(&buffer);
         let decoded_value = bencode_decoder.decode();
         if decoded_value.is_err() {
             panic!("{}", decoded_value.err().unwrap());
         }
-
         let decoded_value = decoded_value.unwrap();
         info_command(decoded_value);
     } else {
@@ -42,26 +39,14 @@ fn main() {
 }
 
 fn info_command(decoded_value: serde_json::Value) {
-    if let Some(announce) = decoded_value["announce"].as_str() {
-        println!("Tracker URL: {}", announce);
-    } else {
-        println!("Tracker URL not found or not a string");
-    }
+    let torrent = Torrent::from_bencode(decoded_value).unwrap();
 
-    if let Some(length) = decoded_value["info"]["length"].as_i64() {
-        println!("Length: {}", length);
-    } else {
-        println!("Length not found or not an integer");
-    }
-
-    let bencoded_info = Encoder::encode(&decoded_value["info"]).unwrap_or_default();
-    println!(
-        "Info Hash: {}",
-        format_args!("{:x}", sha1::Sha1::digest(bencoded_info))
-    );
-    println!("Piece Length: {}", &decoded_value["info"]["piece length"]);
+    println!("Tracker URL: {}", torrent.announce);
+    println!("Length: {}", torrent.info.length);
+    println!("Info Hash: {}", torrent.info_hash().unwrap());
+    println!("Piece Length: {}", torrent.info.piece_length);
     println!("Piece Hashes:");
-    for str_ in Encoder::calculate_pieces_hashes(&decoded_value["info"]["pieces"]).unwrap() {
-        println!("{}", str_);
+    for hash in torrent.piece_hashes() {
+        println!("{}", hash);
     }
 }
