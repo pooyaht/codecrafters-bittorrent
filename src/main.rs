@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use std::{fs, io::Read};
+use std::{fs, io::Read, net::SocketAddrV4};
 
 mod decoder;
 mod encoder;
@@ -20,9 +20,19 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Decode { encoded_value: String },
-    Info { file_path: String },
-    Peers { file_path: String },
+    Decode {
+        encoded_value: String,
+    },
+    Info {
+        file_path: String,
+    },
+    Peers {
+        file_path: String,
+    },
+    Handshake {
+        torrent_file: String,
+        peer_address: String,
+    },
 }
 
 fn main() -> Result<(), Error> {
@@ -32,6 +42,10 @@ fn main() -> Result<(), Error> {
         Commands::Decode { encoded_value } => handle_decode_command(encoded_value),
         Commands::Info { file_path } => handle_info_command(file_path),
         Commands::Peers { file_path } => handle_peers_command(file_path),
+        Commands::Handshake {
+            torrent_file,
+            peer_address,
+        } => handle_handshake_command(torrent_file, peer_address),
     }
 }
 
@@ -61,6 +75,25 @@ fn handle_peers_command(file_path: &str) -> Result<(), crate::Error> {
     for peer in peers {
         println!("{}:{}", peer.0.ip(), peer.0.port());
     }
+    Ok(())
+}
+
+fn handle_handshake_command(torrent_file: &str, peer_address: &str) -> Result<(), crate::Error> {
+    let buffer = read_file(torrent_file)?;
+    let mut bencode_decoder = decoder::Decoder::new(&buffer);
+    let decoded_value = bencode_decoder.decode()?;
+    let torrent = Torrent::from_bencode(decoded_value)?;
+
+    let peer_addr: SocketAddrV4 = peer_address.parse().expect("Invalid peer address");
+
+    let info_hash = torrent.info_hash()?;
+    let peer_id = "00112233445566778899".as_bytes();
+
+    let peer = peer::Peer(peer_addr);
+    let handshake_result = peer.handshake(&info_hash, peer_id)?;
+
+    println!("Peer ID: {}", hex::encode(handshake_result.peer_id));
+
     Ok(())
 }
 
