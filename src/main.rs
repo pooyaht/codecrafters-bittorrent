@@ -87,12 +87,12 @@ fn handle_handshake_command(torrent_file: &str, peer_address: &str) -> Result<()
     let peer_addr: SocketAddrV4 = peer_address.parse().expect("Invalid peer address");
 
     let info_hash = torrent.info_hash()?;
-    let peer_id = "00112233445566778899".as_bytes();
+    let peer_id = b"00112233445566778899";
 
     let peer = peer::Peer(peer_addr);
     let handshake_result = peer.handshake(&info_hash, peer_id)?;
 
-    println!("Peer ID: {}", hex::encode(handshake_result.peer_id));
+    println!("{}", handshake_result);
 
     Ok(())
 }
