@@ -2,7 +2,7 @@ use std::net::SocketAddrV4;
 
 use serde::Serialize;
 
-use crate::{decoder, peer::Peer};
+use crate::decoder;
 
 #[derive(Serialize)]
 pub(crate) struct Tracker {
@@ -30,7 +30,7 @@ impl Tracker {
         &self,
         announce_url: &str,
         info_hash: &str,
-    ) -> Result<Vec<Peer>, crate::Error> {
+    ) -> Result<Vec<SocketAddrV4>, crate::Error> {
         let url = format!(
             "{}?info_hash={}&{}",
             announce_url,
@@ -61,9 +61,9 @@ impl Tracker {
                                 chunk[5].as_u64().unwrap_or_default() as u8,
                             ]);
 
-                            Peer(SocketAddrV4::new(ip, port))
+                            SocketAddrV4::new(ip, port)
                         })
-                        .collect::<Vec<Peer>>()
+                        .collect::<Vec<_>>()
                 })
             })
             .unwrap_or_default()
