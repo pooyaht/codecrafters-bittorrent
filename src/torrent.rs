@@ -101,4 +101,12 @@ impl Torrent {
                 acc
             })
     }
+
+    pub fn num_pieces(&self) -> usize {
+        if self.info.length % self.info.piece_length == 0 {
+            (self.info.length / self.info.piece_length) as usize
+        } else {
+            (self.info.length / self.info.piece_length) as usize + 1
+        }
+    }
 }

@@ -13,6 +13,8 @@ pub(crate) enum Error {
     Network(reqwest::Error),
     NoPeers,
     MissingField(String),
+    InvalidMessageType(u8),
+    UnexpectedPeerMessage(u8, u8),
 }
 
 impl std::fmt::Display for Error {
@@ -35,6 +37,16 @@ impl std::fmt::Display for Error {
             Error::MissingField(field) => write!(f, "Missing field: {}", field),
             Error::Network(e) => write!(f, "Network error: {}", e),
             Error::NoPeers => write!(f, "Couldn't find any peers"),
+            Error::InvalidMessageType(message_type) => {
+                write!(f, "Invalid message type: {}", message_type)
+            }
+            Error::UnexpectedPeerMessage(expected, actual) => {
+                write!(
+                    f,
+                    "Unexpected peer message: expected {}, got {}",
+                    expected, actual
+                )
+            }
         }
     }
 }
